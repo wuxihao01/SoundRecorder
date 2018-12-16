@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".secondsfragment">
 
     <!-- TODO: Update blank fragment layout -->
@@ -12,8 +13,9 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
         <ListView
-            android:id="@+id/listview"
+            android:id="@+id/mylist"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"></ListView>
+            android:layout_height="match_parent"
+            ></ListView>
     </LinearLayout>
 </FrameLayout>

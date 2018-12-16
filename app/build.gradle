@@ -24,7 +24,15 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:24.2.1'
     implementation 'com.tencent.mm.opensdk:wechat-sdk-android-with-mta:+'
     implementation 'com.blankj:utilcode:1.22.0'
+    implementation 'com.nhaarman.listviewanimations:lib-core:3.1.0@aar'
+    implementation 'com.nhaarman.listviewanimations:lib-manipulation:3.1.0@aar'
+    implementation 'com.nhaarman.listviewanimations:lib-core-slh:3.1.0@aar'
+    implementation 'com.github.iammert:MusicPlayerView:e3b937c729'
+    implementation 'com.github.jd-alexander:LikeButton:0.2.3'
+    implementation 'com.github.sd6352051:NiftyDialogEffects:v1.0.3'
+    implementation 'com.roughike:bottom-bar:2.3.1'
 }

@@ -3,24 +3,28 @@ package com.example.um.soundrecorder;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Adapter;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.blankj.utilcode.util.ConvertUtils;
+import com.gitonway.lee.niftymodaldialogeffects.lib.Effectstype;
+import com.gitonway.lee.niftymodaldialogeffects.lib.NiftyDialogBuilder;
+import com.nhaarman.listviewanimations.appearance.simple.AlphaInAnimationAdapter;
 import com.tencent.mm.opensdk.modelmsg.SendMessageToWX;
 import com.tencent.mm.opensdk.modelmsg.WXMediaMessage;
 import com.tencent.mm.opensdk.modelmsg.WXMusicObject;
@@ -29,9 +33,8 @@ import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.List;
 
 
 /**
@@ -39,16 +42,16 @@ import java.util.Collections;
  */
 public class secondsfragment extends Fragment {
 
-    public ListView listView;
     private MediaSQL mediaSQL;
-    private ArrayList<String> arr_array;
+    private Effectstype effect;
     private SQLiteDatabase db;
     private static final int THUMB_SIZE = 150;
-    private MediaPlayer mediaPlayer;
     public static final String appID = "wxdc8b5869e66ad83f";
     public IWXAPI wxapi;
+    myAdapter adapter;
+    ListView mylistview;
     private boolean apply;
-    private boolean isopen=true;
+    private List<recorderItem> musicList=new ArrayList<>();
     public secondsfragment() {
         // Required empty public constructor
     }
@@ -69,59 +72,104 @@ public class secondsfragment extends Fragment {
     }
 
     private void init() {
-        arr_array=new ArrayList<>();
         mediaSQL=new MediaSQL(getContext());
         db=mediaSQL.getReadableDatabase();
-        listView=(ListView)getView().findViewById(R.id.listview);
         apply=regToWeiXin();
     }
 
     public void initQuery() {
         Cursor cursor=db.query("MEDIA",null,null,null,null,null,null);
-        arr_array.clear();
+        musicList.clear();
         if(cursor.moveToFirst()) {
             do {
+
                 String time = ms2HMS(Integer.valueOf(cursor.getString(cursor.getColumnIndex("time"))));
                 String path = cursor.getString(cursor.getColumnIndex("path"));
                 String name=cursor.getString(cursor.getColumnIndex("medianame"));
-                arr_array.add(time + "：" + name+"："+path);
+                recorderItem item=new recorderItem(name,time,path);
+                musicList.add(item);
             } while (cursor.moveToNext());
-            Collections.sort(arr_array);
             cursor.close();
         }
-        ArrayAdapter<String> a=new ArrayAdapter(getContext(),android.R.layout.simple_list_item_1,arr_array);
-        listView.setAdapter(a);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mylistview=(ListView)getView().findViewById(R.id.mylist);
+        adapter =new myAdapter(getContext(),R.layout.musiclistview,musicList);
+        mylistview.setAdapter(adapter);
+        mylistview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                final String choose=parent.getItemAtPosition(position).toString();
-                String[] temp=null;
-                temp=choose.split("：");
-                openMedia(temp[2]);
+                recorderItem item=(recorderItem) parent.getItemAtPosition(position);
+                Intent intent=new Intent(getContext(),MusicPlayerr.class);
+                intent.putExtra("path",item.getPath());
+                intent.putExtra("name",item.getName());
+                intent.putExtra("time",item.getTime());
+                startActivity(intent);
             }
         });
 
-        final AlertDialog.Builder builder=new AlertDialog.Builder(getContext());
-        builder.setTitle("选择选项");
-        builder.setMessage("选择你要的服务");
-        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        mylistview.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                final String choose=parent.getItemAtPosition(position).toString();
+                recorderItem item=(recorderItem) parent.getItemAtPosition(position);
+                final String itempath=item.getPath();
+                effect=Effectstype.RotateBottom;
+                final NiftyDialogBuilder dialogBuilder= NiftyDialogBuilder.getInstance(getContext());
+                dialogBuilder
+                        .withTitle("Modal Dialog")                                  //.withTitle(null)  no title
+                        .withTitleColor("#FFFFFF")                                  //def
+                        .withDividerColor("#11000000")                              //def
+                        .withMessage("This is a modal Dialog.")                     //.withMessage(null)  no Msg
+                        .withMessageColor("#FFFFFFFF")                              //def  | withMessageColor(int resid)
+                        .withDialogColor("#FFE74C3C")                               //def  | withDialogColor(int resid)                               //def
+                        .withIcon(getResources().getDrawable(R.drawable.icon))
+                        .isCancelableOnTouchOutside(true)                           //def    | isCancelable(true)
+                        .withDuration(700)                                          //def
+                        .withEffect(effect)                                         //def Effectstype.Slidetop
+                        .withButton1Text("Delete")                                      //def gone
+                        .withButton2Text("Cancel")                                  //def gone
+                        .setCustomView(R.layout.custom_view,getContext())         //.setCustomView(View or ResId,context)
+                        .setButton1Click(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                delMedia(itempath);
+                                dialogBuilder.dismiss();
+                                initQuery();
+                                Toast.makeText(v.getContext(), "删除成功！", Toast.LENGTH_SHORT).show();
+
+                            }
+                        })
+                        .setButton2Click(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Toast.makeText(v.getContext(), "取消操作", Toast.LENGTH_SHORT).show();
+                                dialogBuilder.dismiss();
+                            }
+                        })
+                        .show();
+                return true;
+            }
+        });
+
+
+
+       /* final AlertDialog.Builder builder=new AlertDialog.Builder(getContext());
+        builder.setTitle("选择选项");
+        builder.setMessage("选择你要的服务");
+        mylistview.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                recorderItem item=(recorderItem) parent.getItemAtPosition(position);
+                final String itempath=item.getPath();
                 builder.setPositiveButton("删除", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String[] temp=null;
-                        temp=choose.split("：");
-                        delMedia(temp[2]);
+                        delMedia(itempath);
+                        initQuery();
                     }
                 });
                 builder.setNeutralButton("分享到朋友圈", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String[] temp=null;
-                        temp=choose.split("：");
-                        sharerecord(temp[2]);
+                        sharerecord(itempath);
                     }
                 });
                 builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -134,49 +182,9 @@ public class secondsfragment extends Fragment {
                 dia.show();
                 return true;
             }
-        });
+        });*/
     }
 
-    private void openMedia(String path){
-        try {
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(path);
-            mediaPlayer.prepare();
-            Toast.makeText(getContext(),"开始播放",Toast.LENGTH_SHORT).show();
-            mediaPlayer.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void stopMedia(){
-        if(mediaPlayer!=null){
-            if(mediaPlayer.isPlaying()){
-                mediaPlayer.stop();
-                mediaPlayer.reset();
-                mediaPlayer.release();
-                mediaPlayer = null;
-                Toast.makeText(getContext(),"结束播放",Toast.LENGTH_SHORT).show();
-            }
-        }
-        else{
-            Toast.makeText(getContext(),"音乐文件不存在",Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void pauseMedia(){
-        if(mediaPlayer!=null){
-            if(mediaPlayer.isPlaying()){
-                mediaPlayer.pause();
-            }
-            else{
-                Toast.makeText(getContext(),"音乐已播放完毕,无法暂停",Toast.LENGTH_SHORT).show();
-            }
-        }
-        else{
-            Toast.makeText(getContext(),"音乐文件不存在",Toast.LENGTH_SHORT).show();
-        }
-    }
 
     private void delMedia(String path){
         db.delete("MEDIA","path=?",new String[]{path});
@@ -194,7 +202,10 @@ public class secondsfragment extends Fragment {
     }
 
     public static String ms2HMS(int _ms){
-        String HMStime;
+        String HMStime=String.valueOf(_ms/1000);
+        return HMStime;
+
+        /*String HMStime;
         _ms/=1000;
         int hour=_ms/3600;
         int mint=(_ms%3600)/60;
@@ -212,7 +223,8 @@ public class secondsfragment extends Fragment {
             sedStr="0"+sedStr;
         }
         HMStime=hourStr+":"+mintStr+":"+sedStr;
-        return HMStime;
+        return HMStime;*/
+
     }
 
 

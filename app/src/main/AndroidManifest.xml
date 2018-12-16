@@ -24,7 +24,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
 
         <service
@@ -35,9 +34,8 @@
         <activity
             android:name=".wxapi.WXEntryActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Translucent"
-            ></activity>
+            android:theme="@android:style/Theme.Translucent" />
+        <activity android:name=".MusicPlayerr"></activity>
     </application>
-
 
 </manifest>
